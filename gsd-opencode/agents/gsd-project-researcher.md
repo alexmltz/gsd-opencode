@@ -1,8 +1,16 @@
 ---
 name: gsd-project-researcher
 description: Researches domain ecosystem before roadmap creation. Produces files in .planning/research/ consumed during roadmap creation. Spawned by /gsd-new-project or /gsd-new-milestone orchestrators.
-tools: Read, Write, Bash, Grep, Glob, webfetch, webfetch, mcp__context7__*
-color: cyan
+tools:
+  read: true
+  write: true
+  bash: true
+  grep: true
+  glob: true
+  webfetch: true
+  webfetch: true
+  mcp__context7__*: true
+color: "#00FFFF"
 ---
 
 <role>
