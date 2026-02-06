@@ -55,6 +55,48 @@ function loadConfig(): PluginConfig {
   }
 }
 
+function loadProjectConfig(projectDir: string): { skipDiscuss?: boolean } {
+  const projectConfigFile = join(projectDir, '.planning', 'config.json')
+  if (!existsSync(projectConfigFile)) return {}
+
+  try {
+    const config = JSON.parse(readFileSync(projectConfigFile, 'utf8'))
+    // Support nested autoChain.skipDiscuss or flat skipDiscuss
+    if (config.autoChain?.skipDiscuss !== undefined) {
+      return { skipDiscuss: config.autoChain.skipDiscuss }
+    }
+    if (config.skipDiscuss !== undefined) {
+      return { skipDiscuss: config.skipDiscuss }
+    }
+    return {}
+  } catch {
+    return {}
+  }
+}
+
+function getSkipDiscuss(config: PluginConfig, projectDir: string, content: string): boolean {
+  // Priority 1: Inline comment override (per-chat)
+  if (content.includes('<!-- gsd:skip-discuss -->')) {
+    log('skipDiscuss: true (inline override)')
+    return true
+  }
+  if (content.includes('<!-- gsd:use-discuss -->')) {
+    log('skipDiscuss: false (inline override)')
+    return false
+  }
+
+  // Priority 2: Project config (.planning/config.json)
+  const projectConfig = loadProjectConfig(projectDir)
+  if (projectConfig.skipDiscuss !== undefined) {
+    log(`skipDiscuss: ${projectConfig.skipDiscuss} (project config)`)
+    return projectConfig.skipDiscuss
+  }
+
+  // Priority 3: Global config (~/.config/opencode/gsd-auto-chain.json)
+  log(`skipDiscuss: ${config.skipDiscuss} (global config)`)
+  return config.skipDiscuss
+}
+
 function extractNextCommand(content: string): string | null {
   if (!content) {
     console.log('[GSD Auto-Chain] extractNextCommand: empty content')
@@ -158,7 +200,7 @@ function getPendingCommand(): string | null {
   }
 }
 
-export const GsdAutoChain: Plugin = async ({ $, client }) => {
+export const GsdAutoChain: Plugin = async ({ $, client, directory }) => {
   const config = loadConfig()
 
   if (!config.autoChain) {
@@ -166,7 +208,7 @@ export const GsdAutoChain: Plugin = async ({ $, client }) => {
     return {}
   }
 
-  log('Plugin loaded')
+  log(`Plugin loaded (project: ${directory})`)
 
   return {
     event: async ({ event }: { event: any }) => {
@@ -245,10 +287,12 @@ export const GsdAutoChain: Plugin = async ({ $, client }) => {
         if (!nextCommand) return
 
         // Skip discussion and go straight to planning if configured
-        if (config.skipDiscuss && nextCommand.startsWith('/gsd-discuss-phase')) {
+        // Priority: inline comment > project config > global config
+        const skipDiscuss = getSkipDiscuss(config, directory, content)
+        if (skipDiscuss && nextCommand.startsWith('/gsd-discuss-phase')) {
           const phaseNum = nextCommand.replace('/gsd-discuss-phase', '').trim()
           nextCommand = `/gsd-plan-phase ${phaseNum}`.trim()
-          log(`Transformed to (skipDiscuss): ${nextCommand}`)
+          log(`Transformed to: ${nextCommand}`)
         }
 
         if (!shouldAutoChain(nextCommand, content)) {

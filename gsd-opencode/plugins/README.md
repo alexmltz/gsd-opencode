@@ -57,6 +57,21 @@ Create `~/.config/opencode/gsd-auto-chain.json`:
 | `confirmBeforeChain` | `false` | Log command without executing (dry run) |
 | `skipDiscuss` | `false` | Skip `/gsd-discuss-phase` and go straight to `/gsd-plan-phase` |
 
+### skipDiscuss Priority
+
+The `skipDiscuss` setting can be controlled at multiple levels (highest priority first):
+
+1. **Per-chat** — Add `<!-- gsd:skip-discuss -->` or `<!-- gsd:use-discuss -->` in the conversation
+2. **Per-project** — Add to `.planning/config.json`:
+   ```json
+   { "skipDiscuss": true }
+   ```
+   or nested:
+   ```json
+   { "autoChain": { "skipDiscuss": true } }
+   ```
+3. **Global** — Set in `~/.config/opencode/gsd-auto-chain.json`
+
 ### Commands that auto-chain
 
 These commands will automatically detect and chain to next steps:
@@ -67,7 +82,7 @@ These commands will automatically detect and chain to next steps:
 - `/gsd-add-phase` → `/gsd-plan-phase`
 - `/gsd-insert-phase` → `/gsd-plan-phase`
 
-With `"skipDiscuss": true`, any `/gsd-discuss-phase N` is transformed to `/gsd-plan-phase N`, creating a faster workflow: **execute → plan → execute → plan...**
+With `skipDiscuss` enabled, any `/gsd-discuss-phase N` is transformed to `/gsd-plan-phase N`, creating a faster workflow: **execute → plan → execute → plan...**
 
 ### Commands that DON'T auto-chain
 
