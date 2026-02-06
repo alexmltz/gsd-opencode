@@ -253,8 +253,64 @@ export const GsdAutoChain: Plugin = async ({ $, client }) => {
         }
 
         console.log(`[GSD Auto-Chain] Detected: ${nextCommand}`)
-        console.log('[GSD Auto-Chain] Storing for next session...')
 
+        // Try to auto-execute via TUI control API using fetch
+        log('=== Attempting auto-execute via TUI fetch ===')
+
+        let autoExecuted = false
+        const baseUrl = 'http://localhost:4096'
+
+        try {
+          // Step 1: Execute /new to create fresh session
+          log('Step 1: POST /tui/execute-command {command: "/new"}')
+          const newResp = await fetch(`${baseUrl}/tui/execute-command`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: '/new' })
+          })
+          log(`  Response: ${newResp.status} ${newResp.statusText}`)
+          if (!newResp.ok) {
+            const text = await newResp.text()
+            log(`  Error body: ${text}`)
+          }
+
+          // Step 2: Wait for new session to initialize
+          log('Step 2: Waiting 800ms for session...')
+          await new Promise(r => setTimeout(r, 800))
+
+          // Step 3: Append the GSD command to prompt
+          log(`Step 3: POST /tui/append-prompt {text: "${nextCommand}"}`)
+          const appendResp = await fetch(`${baseUrl}/tui/append-prompt`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: nextCommand })
+          })
+          log(`  Response: ${appendResp.status} ${appendResp.statusText}`)
+
+          // Step 4: Submit the prompt
+          log('Step 4: POST /tui/submit-prompt')
+          const submitResp = await fetch(`${baseUrl}/tui/submit-prompt`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+          })
+          log(`  Response: ${submitResp.status} ${submitResp.statusText}`)
+
+          autoExecuted = true
+          console.log(`\n[GSD Auto-Chain] Auto-chained: ${nextCommand}`)
+        } catch (e: any) {
+          log(`Fetch auto-execute error: ${e.message}`)
+          log(`Error stack: ${e.stack}`)
+        }
+
+        log('=== End auto-execute attempt ===')
+
+        if (autoExecuted) {
+          return // Successfully auto-executed
+        }
+
+        // Fallback: store and notify
+        console.log('[GSD Auto-Chain] Storing for next session...')
         storePendingCommand(nextCommand)
 
         // Delay before notification
