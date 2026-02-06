@@ -35,13 +35,15 @@ interface PluginConfig {
   autoChain: boolean
   autoChainDelay: number
   confirmBeforeChain: boolean
+  skipDiscuss: boolean
 }
 
 function loadConfig(): PluginConfig {
   const defaults: PluginConfig = {
     autoChain: true,
     autoChainDelay: 1000,
-    confirmBeforeChain: false
+    confirmBeforeChain: false,
+    skipDiscuss: false
   }
 
   if (!existsSync(CONFIG_FILE)) return defaults
@@ -237,10 +239,17 @@ export const GsdAutoChain: Plugin = async ({ $, client }) => {
         log(`Content length: ${content.length}`)
         log(`Contains "Next Up": ${content.includes('Next Up')}`)
 
-        const nextCommand = extractNextCommand(content)
+        let nextCommand = extractNextCommand(content)
         log(`Extracted command: ${nextCommand || 'none'}`)
 
         if (!nextCommand) return
+
+        // Skip discussion and go straight to planning if configured
+        if (config.skipDiscuss && nextCommand.startsWith('/gsd-discuss-phase')) {
+          const phaseNum = nextCommand.replace('/gsd-discuss-phase', '').trim()
+          nextCommand = `/gsd-plan-phase ${phaseNum}`.trim()
+          log(`Transformed to (skipDiscuss): ${nextCommand}`)
+        }
 
         if (!shouldAutoChain(nextCommand, content)) {
           log(`Skipping (interactive): ${nextCommand}`)

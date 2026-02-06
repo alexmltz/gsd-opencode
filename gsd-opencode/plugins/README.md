@@ -45,7 +45,8 @@ Create `~/.config/opencode/gsd-auto-chain.json`:
 {
   "autoChain": true,
   "autoChainDelay": 1000,
-  "confirmBeforeChain": false
+  "confirmBeforeChain": false,
+  "skipDiscuss": false
 }
 ```
 
@@ -54,6 +55,7 @@ Create `~/.config/opencode/gsd-auto-chain.json`:
 | `autoChain` | `true` | Enable/disable auto-chaining |
 | `autoChainDelay` | `1000` | Delay in ms before fallback notification |
 | `confirmBeforeChain` | `false` | Log command without executing (dry run) |
+| `skipDiscuss` | `false` | Skip `/gsd-discuss-phase` and go straight to `/gsd-plan-phase` |
 
 ### Commands that auto-chain
 
@@ -64,6 +66,8 @@ These commands will automatically detect and chain to next steps:
 - `/gsd-audit-milestone` → `/gsd-complete-milestone`
 - `/gsd-add-phase` → `/gsd-plan-phase`
 - `/gsd-insert-phase` → `/gsd-plan-phase`
+
+With `"skipDiscuss": true`, any `/gsd-discuss-phase N` is transformed to `/gsd-plan-phase N`, creating a faster workflow: **execute → plan → execute → plan...**
 
 ### Commands that DON'T auto-chain
 
