@@ -313,27 +313,29 @@ export const GsdAutoChain: Plugin = async ({ $, client, directory }) => {
         let autoExecuted = false
 
         try {
-          // Step 1: Execute /new to create fresh session
-          log('Step 1: client.tui.executeCommand({ body: { command: "/new" } })')
-          const newResp = await client.tui.executeCommand({ body: { command: '/new' } })
-          log(`  Response: ${JSON.stringify(newResp)}`)
+          // Step 1: Type /new into prompt
+          log('Step 1: Appending "/new" to prompt')
+          await client.tui.clearPrompt()
+          await client.tui.appendPrompt({ body: { text: '/new' } })
 
-          // Step 2: Wait for new session to initialize
-          // /new needs time to create session and switch TUI focus
-          log('Step 2: Waiting 2000ms for session to initialize...')
-          await new Promise(r => setTimeout(r, 2000))
+          // Step 2: Submit /new to create fresh session
+          log('Step 2: Submitting /new')
+          await client.tui.submitPrompt()
 
-          // Step 3: Append the GSD command to prompt
-          log(`Step 3: client.tui.appendPrompt({ body: { text: "${nextCommand}" } })`)
-          const appendResp = await client.tui.appendPrompt({ body: { text: nextCommand } })
-          log(`  Response: ${JSON.stringify(appendResp)}`)
+          // Step 3: Wait for new session to initialize and TUI to switch
+          log('Step 3: Waiting 2500ms for new session...')
+          await new Promise(r => setTimeout(r, 2500))
 
-          // Step 4: Wait for prompt to be appended
-          log('Step 4: Waiting 500ms for prompt...')
+          // Step 4: Type the GSD command
+          log(`Step 4: Appending "${nextCommand}" to prompt`)
+          await client.tui.appendPrompt({ body: { text: nextCommand } })
+
+          // Step 5: Wait for prompt to be ready
+          log('Step 5: Waiting 500ms...')
           await new Promise(r => setTimeout(r, 500))
 
-          // Step 5: Submit the prompt
-          log('Step 5: client.tui.submitPrompt()')
+          // Step 6: Submit the command
+          log('Step 6: Submitting command')
           const submitResp = await client.tui.submitPrompt()
           log(`  Response: ${JSON.stringify(submitResp)}`)
 
