@@ -17,7 +17,6 @@ const LOG_FILE = join(homedir(), '.cache', 'opencode', 'gsd-auto-chain.log')
 
 function log(msg: string): void {
   const line = `[${new Date().toISOString()}] ${msg}\n`
-  console.log(`[GSD Auto-Chain] ${msg}`)
   try {
     const dir = dirname(LOG_FILE)
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
@@ -99,7 +98,7 @@ function getSkipDiscuss(config: PluginConfig, projectDir: string, content: strin
 
 function extractNextCommand(content: string): string | null {
   if (!content) {
-    console.log('[GSD Auto-Chain] extractNextCommand: empty content')
+    log('extractNextCommand: empty content')
     return null
   }
 
@@ -116,27 +115,24 @@ function extractNextCommand(content: string): string | null {
   for (const pattern of nextUpPatterns) {
     nextUpMatch = content.match(pattern)
     if (nextUpMatch) {
-      console.log('[GSD Auto-Chain] Next Up matched with pattern:', pattern.source.substring(0, 30))
+      log(`Next Up matched with pattern: ${pattern.source.substring(0, 30)}`)
       break
     }
   }
 
   if (!nextUpMatch) {
-    // Debug: check if content contains any "Next Up" at all
     if (content.includes('Next Up') || content.includes('next up')) {
-      console.log('[GSD Auto-Chain] Found "Next Up" text but no regex matched')
-      // Try to extract the section manually
+      log('Found "Next Up" text but no regex matched')
       const idx = content.toLowerCase().indexOf('next up')
       if (idx !== -1) {
-        console.log('[GSD Auto-Chain] Context around "Next Up":', content.substring(idx, idx + 150))
+        log(`Context around "Next Up": ${content.substring(idx, idx + 150)}`)
       }
     }
     return null
   }
 
   const section = nextUpMatch[0]
-  console.log('[GSD Auto-Chain] Next Up section found, length:', section.length)
-  console.log('[GSD Auto-Chain] Section preview:', section.substring(0, 150))
+  log(`Next Up section found, length: ${section.length}`)
 
   const patterns = [
     { name: 'backtick', regex: /`(\/gsd[a-z-]+(?:\s+[^`]+)?)`/ },
@@ -150,26 +146,25 @@ function extractNextCommand(content: string): string | null {
     const match = section.match(regex)
     if (match) {
       const cmd = match[1].trim().split(/\s+—\s+/)[0].trim()
-      console.log(`[GSD Auto-Chain] Matched with pattern '${name}': ${cmd}`)
+      log(`Matched with pattern '${name}': ${cmd}`)
       return cmd
     }
   }
 
   // Last resort: find any /gsd command in the whole content
-  console.log('[GSD Auto-Chain] No pattern matched in section, trying whole content...')
+  log('No pattern matched in section, trying whole content...')
   const fallbackMatch = content.match(/(\/gsd[a-z0-9-]+(?:\s+\d+)?)/i)
   if (fallbackMatch) {
-    console.log('[GSD Auto-Chain] Fallback matched:', fallbackMatch[1])
-    // Only use fallback if it's near "Next Up"
+    log(`Fallback matched: ${fallbackMatch[1]}`)
     const nextUpIdx = content.toLowerCase().indexOf('next up')
     const cmdIdx = content.indexOf(fallbackMatch[1])
     if (nextUpIdx !== -1 && cmdIdx > nextUpIdx && cmdIdx - nextUpIdx < 300) {
       return fallbackMatch[1]
     }
-    console.log('[GSD Auto-Chain] Fallback command too far from "Next Up"')
+    log('Fallback command too far from "Next Up"')
   }
 
-  console.log('[GSD Auto-Chain] No command pattern matched')
+  log('No command pattern matched')
   return null
 }
 
@@ -216,11 +211,10 @@ export const GsdAutoChain: Plugin = async ({ $, client, directory }) => {
       if (event.type === 'session.created') {
         const pending = getPendingCommand()
         if (pending) {
-          console.log(`\n[GSD Auto-Chain] Found pending command: ${pending}`)
+          log(`Found pending command: ${pending}`)
           const inputFile = join(homedir(), '.cache', 'opencode', 'gsd-auto-input.txt')
           writeFileSync(inputFile, pending)
-          console.log(`[GSD Auto-Chain] Saved to: ${inputFile}`)
-          console.log(`[GSD Auto-Chain] Please run: ${pending}\n`)
+          console.log(`[GSD Auto-Chain] Pending: ${pending}`)
         }
         return
       }
@@ -301,11 +295,11 @@ export const GsdAutoChain: Plugin = async ({ $, client, directory }) => {
         }
 
         if (config.confirmBeforeChain) {
-          console.log(`[GSD Auto-Chain] Would execute: ${nextCommand}`)
+          console.log(`[GSD Auto-Chain] Dry run: ${nextCommand}`)
           return
         }
 
-        console.log(`[GSD Auto-Chain] Detected: ${nextCommand}`)
+        log(`Detected: ${nextCommand}`)
 
         // Try to auto-execute via SDK TUI control API
         log('=== Attempting auto-execute via SDK ===')
@@ -353,20 +347,16 @@ export const GsdAutoChain: Plugin = async ({ $, client, directory }) => {
         }
 
         // Fallback: store and notify
-        console.log('[GSD Auto-Chain] Storing for next session...')
+        log('Fallback: storing for next session')
         storePendingCommand(nextCommand)
 
-        // Delay before notification
         await new Promise(r => setTimeout(r, config.autoChainDelay))
 
-        // Send notification
         try {
           await $`osascript -e 'display notification "Ready: ${nextCommand}" with title "GSD Auto-Chain"'`
-        } catch {
-          // Notification optional
-        }
+        } catch {}
 
-        console.log(`\n[GSD Auto-Chain] Run /new then the command will auto-execute`)
+        console.log(`[GSD Auto-Chain] Stored: ${nextCommand} (run /new to execute)`)
       }
     }
   }
