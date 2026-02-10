@@ -319,8 +319,9 @@ export const GsdAutoChain: Plugin = async ({ $, client, directory }) => {
           log(`  Response: ${JSON.stringify(newResp)}`)
 
           // Step 2: Wait for new session to initialize
-          log('Step 2: Waiting 800ms for session...')
-          await new Promise(r => setTimeout(r, 800))
+          // /new needs time to create session and switch TUI focus
+          log('Step 2: Waiting 1500ms for session...')
+          await new Promise(r => setTimeout(r, 1500))
 
           // Step 3: Append the GSD command to prompt
           log(`Step 3: client.tui.appendPrompt({ body: { text: "${nextCommand}" } })`)
