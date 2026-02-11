@@ -307,21 +307,30 @@ export const GsdAutoChain: Plugin = async ({ $, client, directory }) => {
         let autoExecuted = false
 
         try {
-          // Step 1: Execute "new" as TUI command (not slash command)
-          log('Step 1: executeCommand("new")')
-          await client.tui.executeCommand({ body: { command: 'new' } })
+          // Step 1: Clear and type /new with tab to trigger autocomplete
+          log('Step 1: Clearing prompt')
+          await client.tui.clearPrompt()
+          await new Promise(r => setTimeout(r, 200))
 
-          // Step 2: Wait for new session to initialize
-          log('Step 2: Waiting 3000ms for new session...')
+          log('Step 2: Appending "/new" + TAB character')
+          await client.tui.appendPrompt({ body: { text: '/new\t' } })
+          await new Promise(r => setTimeout(r, 500))
+
+          // Step 3: Submit to execute /new
+          log('Step 3: Submitting /new')
+          await client.tui.submitPrompt()
+
+          // Step 4: Wait for new session to initialize
+          log('Step 4: Waiting 3000ms for new session...')
           await new Promise(r => setTimeout(r, 3000))
 
-          // Step 3: Type the GSD command
-          log(`Step 3: Appending "${nextCommand}"`)
+          // Step 5: Type the GSD command
+          log(`Step 5: Appending "${nextCommand}"`)
           await client.tui.appendPrompt({ body: { text: nextCommand } })
           await new Promise(r => setTimeout(r, 300))
 
-          // Step 4: Submit the command
-          log('Step 4: Submitting command')
+          // Step 6: Submit the command
+          log('Step 6: Submitting command')
           const submitResp = await client.tui.submitPrompt()
           log(`  Response: ${JSON.stringify(submitResp)}`)
 
