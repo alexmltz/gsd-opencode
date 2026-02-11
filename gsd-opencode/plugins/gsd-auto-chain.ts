@@ -307,32 +307,28 @@ export const GsdAutoChain: Plugin = async ({ $, client, directory }) => {
         let autoExecuted = false
 
         try {
-          // Step 1: Clear and type /new with tab to trigger autocomplete
-          log('Step 1: Clearing prompt')
-          await client.tui.clearPrompt()
-          await new Promise(r => setTimeout(r, 200))
+          // Step 1: Create a new session via SDK
+          log('Step 1: Creating new session via SDK')
+          const createResp = await client.session.create({ body: {} })
+          const newSessionId = createResp?.data?.id
+          log(`  New session ID: ${newSessionId}`)
 
-          log('Step 2: Appending "/new" + TAB character')
-          await client.tui.appendPrompt({ body: { text: '/new\t' } })
-          await new Promise(r => setTimeout(r, 500))
+          if (!newSessionId) {
+            log('Failed to create new session')
+            throw new Error('No session ID returned')
+          }
 
-          // Step 3: Submit to execute /new
-          log('Step 3: Submitting /new')
-          await client.tui.submitPrompt()
+          // Step 2: Wait for session to initialize
+          log('Step 2: Waiting 1000ms for session...')
+          await new Promise(r => setTimeout(r, 1000))
 
-          // Step 4: Wait for new session to initialize
-          log('Step 4: Waiting 3000ms for new session...')
-          await new Promise(r => setTimeout(r, 3000))
-
-          // Step 5: Type the GSD command
-          log(`Step 5: Appending "${nextCommand}"`)
-          await client.tui.appendPrompt({ body: { text: nextCommand } })
-          await new Promise(r => setTimeout(r, 300))
-
-          // Step 6: Submit the command
-          log('Step 6: Submitting command')
-          const submitResp = await client.tui.submitPrompt()
-          log(`  Response: ${JSON.stringify(submitResp)}`)
+          // Step 3: Send command to new session (runs in background)
+          log(`Step 3: Sending "${nextCommand}" to new session`)
+          await client.session.promptAsync({
+            path: { id: newSessionId },
+            body: { content: nextCommand }
+          })
+          log('  Command sent to background session')
 
           autoExecuted = true
           console.log(`\n[GSD Auto-Chain] Auto-chained: ${nextCommand}`)
