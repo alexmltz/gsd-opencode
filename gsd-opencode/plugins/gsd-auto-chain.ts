@@ -307,26 +307,28 @@ export const GsdAutoChain: Plugin = async ({ $, client, directory }) => {
         let autoExecuted = false
 
         try {
-          // Step 1: Type /new into prompt
-          log('Step 1: Appending "/new" to prompt')
+          // Step 1: Clear prompt and wait
+          log('Step 1: Clearing prompt')
           await client.tui.clearPrompt()
-          await client.tui.appendPrompt({ body: { text: '/new' } })
+          await new Promise(r => setTimeout(r, 300))
 
-          // Step 2: Submit /new to create fresh session
-          log('Step 2: Submitting /new')
+          // Step 2: Type /new
+          log('Step 2: Appending "/new"')
+          await client.tui.appendPrompt({ body: { text: '/new' } })
+          await new Promise(r => setTimeout(r, 300))
+
+          // Step 3: Submit /new
+          log('Step 3: Submitting /new')
           await client.tui.submitPrompt()
 
-          // Step 3: Wait for new session to initialize and TUI to switch
-          log('Step 3: Waiting 2500ms for new session...')
-          await new Promise(r => setTimeout(r, 2500))
+          // Step 4: Wait for new session to initialize and TUI to switch
+          log('Step 4: Waiting 3000ms for new session...')
+          await new Promise(r => setTimeout(r, 3000))
 
-          // Step 4: Type the GSD command
-          log(`Step 4: Appending "${nextCommand}" to prompt`)
+          // Step 5: Type the GSD command
+          log(`Step 5: Appending "${nextCommand}"`)
           await client.tui.appendPrompt({ body: { text: nextCommand } })
-
-          // Step 5: Wait for prompt to be ready
-          log('Step 5: Waiting 500ms...')
-          await new Promise(r => setTimeout(r, 500))
+          await new Promise(r => setTimeout(r, 300))
 
           // Step 6: Submit the command
           log('Step 6: Submitting command')
